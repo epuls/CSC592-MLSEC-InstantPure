@@ -284,9 +284,11 @@ def main(args):
     # 13. Dataset creation and data processing
     # Here, we compute not just the text embeddings but also the additional embeddings
     # needed for the SD XL UNet to operate.
-    dataset = get_dataset("imagenet_sd", split="train")
+    # MODIFIED: clamp max samples to length of dataset
+    dataset = get_dataset("cub200", split="train")
     if args.max_train_samples is not None:
-        random_indices = random.sample(range(len(dataset)), args.max_train_samples)
+        n = min(len(dataset), args.max_train_samples)
+        random_indices = random.sample(range(len(dataset)), n)
         dataset = Subset(dataset, random_indices)
     train_dataloader = DataLoader(dataset,
                                   batch_size=args.train_batch_size,
@@ -384,7 +386,7 @@ def main(args):
     )
 
     # prepare classifier:
-    classifier = get_archs(args.surrogate_model, 'imagenet')
+    classifier = get_archs(args.surrogate_model, 'cub200')
     classifier = classifier.to(accelerator.device).eval()
     decode_classifier = DecodeClassifier(classifier=classifier, vae=vae, scaling_factor=vae.config.scaling_factor,
                                          size=(args.classifier_resolution, args.classifier_resolution))

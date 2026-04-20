@@ -7,7 +7,7 @@ import torch
 
 
 def get_archs(arch, dataset='imagenet'):
-    if dataset == 'imagenet':
+    if dataset == 'imagenet' or dataset == "cub200":
         if arch == 'resnet50':
             model = torchvision.models.resnet50(weights="DEFAULT")
         

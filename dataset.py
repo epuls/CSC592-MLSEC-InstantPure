@@ -15,10 +15,12 @@ import torch
 # https://raw.githubusercontent.com/soumith/imagenetloader.torch/master/valprep.sh
 os.environ['IMAGENET_LOC_ENV'] = "./image_net"
 os.environ['celebA'] = "./datasets/CelebA-HQ"
+os.environ['CUB200_LOC_ENV'] = "./CUB_200_2011"
 
 
 # list of all datasets
-DATASETS = ["imagenet", "celebA"]
+DATASETS = ["imagenet", "celebA", "cub200"]
+
 
 
 def get_dataset(dataset: str, split: str, adv=False) -> Dataset:
@@ -36,6 +38,9 @@ def get_dataset(dataset: str, split: str, adv=False) -> Dataset:
     elif dataset == 'celebA':
         return _celebA(split)
     
+    elif dataset == "cub200":
+        return _cub200(split)
+
     elif dataset == "IQA":
         transform = transforms.Compose([
                 transforms.ToTensor()
@@ -46,6 +51,8 @@ def get_num_classes(dataset: str):
     """Return the number of classes in the dataset. """
     if 'imagenet' in dataset:
         return 1000
+    if 'cub200' in dataset:
+        return 200
 
 
 def get_normalize_layer(dataset: str, diff=None) -> torch.nn.Module:
@@ -55,11 +62,14 @@ def get_normalize_layer(dataset: str, diff=None) -> torch.nn.Module:
 
     if dataset == "imagenet":
         return NormalizeLayer(_IMAGENET_MEAN, _IMAGENET_STDDEV)
+    if dataset == "cub200":
+        return NormalizeLayer(_IMAGENET_MEAN, _IMAGENET_STDDEV)
 
-def get_input_center_layer(dataset: str) -> torch.nn.Module:
-    """Return the dataset's Input Centering layer"""
-    if dataset == "imagenet":
-        return InputCenterLayer(_IMAGENET_MEAN)
+# Unused and InputCenterLayer is not defined
+#def get_input_center_layer(dataset: str) -> torch.nn.Module:
+#    """Return the dataset's Input Centering layer"""
+#    if dataset == "imagenet":
+#        return InputCenterLayer(_IMAGENET_MEAN)
 
 _IMAGENET_MEAN = [0.485, 0.456, 0.406]
 _IMAGENET_STDDEV = [0.229, 0.224, 0.225]
@@ -101,6 +111,29 @@ def _imagenet(split: str, adv=False) -> Dataset:
                 transforms.ToTensor()
             ])
     return datasets.ImageFolder(subdir, transform)
+
+
+def _cub200(split: str) -> Dataset:
+    dir = os.environ['CUB200_LOC_ENV']
+
+    if split == "train":
+        transform = transforms.Compose([
+            transforms.RandomResizedCrop(224),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor()
+        ])
+        return Cub200DS(dir, train=True, transform=transform)
+
+    elif split == "test":
+        transform = transforms.Compose([
+            transforms.Resize(256),
+            transforms.CenterCrop(224),
+            transforms.ToTensor()
+        ])
+        return Cub200DS(dir, train=False, transform=transform)
+
+    else:
+        raise ValueError(f"Unsupported split for cub200: {split}")
 
 def _imagenet_sd(split: str) -> Dataset:
     dir = os.environ['IMAGENET_LOC_ENV']
@@ -260,3 +293,92 @@ class ImageNetDS(Dataset):
             if not check_integrity(fpath, md5):
                 return False
         return True
+
+
+class Cub200DS(Dataset):
+    """
+    CUB-200-2011 dataset using the default raw folder layout:
+
+    root/
+        images/
+        images.txt
+        image_class_labels.txt
+        train_test_split.txt
+
+    Args:
+        root (string): Root directory of CUB_200_2011
+        train (bool): If True, use train split; else test split
+        transform (callable, optional): image transform
+        target_transform (callable, optional): target transform
+    """
+
+    def __init__(self, root, train=True, transform=None, target_transform=None):
+        self.root = os.path.expanduser(root)
+        self.train = train
+        self.transform = transform
+        self.target_transform = target_transform
+
+        self.images_dir = os.path.join(self.root, "images")
+        images_txt = os.path.join(self.root, "images.txt")
+        labels_txt = os.path.join(self.root, "image_class_labels.txt")
+        split_txt = os.path.join(self.root, "train_test_split.txt")
+
+        required = [self.images_dir, images_txt, labels_txt, split_txt]
+        for path in required:
+            if not os.path.exists(path):
+                raise RuntimeError(
+                    f"CUB-200 file or directory not found: {path}"
+                )
+
+        image_id_to_path = {}
+        with open(images_txt, "r") as f:
+            for line in f:
+                image_id, rel_path = line.strip().split(" ", 1)
+                image_id_to_path[int(image_id)] = rel_path
+
+        image_id_to_label = {}
+        with open(labels_txt, "r") as f:
+            for line in f:
+                image_id, class_id = line.strip().split()
+                image_id_to_label[int(image_id)] = int(class_id) - 1  # zero-based
+
+        image_id_to_is_train = {}
+        with open(split_txt, "r") as f:
+            for line in f:
+                image_id, is_train = line.strip().split()
+                image_id_to_is_train[int(image_id)] = int(is_train)
+
+        self.samples = []
+        for image_id in sorted(image_id_to_path.keys()):
+            is_train = image_id_to_is_train[image_id] == 1
+            if is_train != self.train:
+                continue
+
+            rel_path = image_id_to_path[image_id]
+            img_path = os.path.join(self.images_dir, rel_path)
+            target = image_id_to_label[image_id]
+            self.samples.append((img_path, target))
+
+        if len(self.samples) == 0:
+            raise RuntimeError(
+                f"No samples found for split={'train' if self.train else 'test'} under {self.root}"
+            )
+
+        self.targets = [target for _, target in self.samples]
+        self.classes = list(range(200))
+        self.class_to_idx = {str(i): i for i in range(200)}
+
+    def __getitem__(self, index):
+        path, target = self.samples[index]
+        img = Image.open(path).convert("RGB")
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return img, target
+
+    def __len__(self):
+        return len(self.samples)
