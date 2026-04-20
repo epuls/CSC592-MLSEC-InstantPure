@@ -1,4 +1,5 @@
 # Debugging WIP
+## Run command
 python train_lora.py \
     --pretrained_teacher_model=$MODEL_NAME \
     --output_dir=$OUTPUT_DIR \
@@ -24,6 +25,15 @@ python train_lora.py \
     --report_to="tensorboard" \
     --seed=3407
 
+## TMP Advertorch patch
+def zero_gradients(x):
+    if isinstance(x, torch.Tensor):
+        if x.grad is not None:
+            x.grad.detach_()
+            x.grad.zero_()
+    else:
+        for elem in x:
+            zero_gradients(elem)
 
 
 
