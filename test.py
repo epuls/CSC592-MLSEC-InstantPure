@@ -8,7 +8,7 @@ import torch
 import torchvision
 from tqdm.auto import tqdm
 import random
-from archs import get_archs, IMAGENET_MODEL
+from archs import get_archs
 from advertorch.attacks import LinfPGDAttack, L2PGDAttack, SpatialTransformAttack
 import matplotlib.pylab as plt
 import time
@@ -18,7 +18,8 @@ from attack_tools import gen_pgd_confs
 import torchvision.transforms.functional as TF
 import torch.nn.functional as F
 from torchvision.transforms import Resize, Grayscale, GaussianBlur
-from torchmetrics.image import SSIM, PSNR
+from torchmetrics.image import StructuralSimilarityIndexMeasure as SSIM
+from torchmetrics.image import PeakSignalNoiseRatio as PSNR
 from torcheval.metrics import FrechetInceptionDistance as FID
 from diffusers import LCMScheduler, TCDScheduler, StableDiffusionControlNetImg2ImgPipeline, ControlNetModel
 from diffusers.utils import *
@@ -278,12 +279,12 @@ def Global(classifier, device, respace, t, args, eps=16, iter=10, name='attack_g
 
     mp(save_path + "/visualization/")
     seed_everything(args.seed)
-    classifier = get_archs(classifier, 'imagenet')  
+    classifier = get_archs(classifier, 'cub200')  
     classifier = classifier.to(device)
     classifier.eval()
 
     dataset = get_dataset(
-        'imagenet', split='test', adv=False
+        'cub200', split='test', adv=False
     )
 
     test_loader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=8)
