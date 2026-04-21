@@ -1,5 +1,5 @@
 # Debugging WIP
-## Run command
+## Train Commands
 python train_lora.py \
     --pretrained_teacher_model=$MODEL_NAME \
     --output_dir=$OUTPUT_DIR \
@@ -17,13 +17,14 @@ python train_lora.py \
     --checkpoints_total_limit=10 \
     --train_batch_size=16 \
     --gradient_checkpointing \
-    --enable_xformers_memory_efficient_attention \
     --gradient_accumulation_steps=1 \
-    --use_8bit_adam \
     --lr_scheduler="constant_with_warmup" \
     --resume_from_checkpoint=latest \
     --report_to="tensorboard" \
     --seed=3407
+
+## Test Commands
+python test.py --model="LCM" --output_dir="output/" --num_validation_set=1000 --lora_input_dir="logs/OSCP/unet_lora/" --strength=0.2 --num_inference_step=5 --device="cuda"
 
 ## TMP Advertorch patch
 def zero_gradients(x):
