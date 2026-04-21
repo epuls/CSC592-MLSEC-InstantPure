@@ -353,6 +353,7 @@ def Global(classifier, device, respace, t, args, eps=16, iter=10, name='attack_g
     mp(save_path + "/typical_image/")
     
     i = 1
+    processed = 0
 
     for x, y in test_loader:
         if i > args.num_validation_set:
@@ -382,14 +383,16 @@ def Global(classifier, device, respace, t, args, eps=16, iter=10, name='attack_g
         clean_accuracy += (y == classifier(denoised_clean_x.to(torch.float32)).argmax(1)).sum().item()
         robust_accuracy += (y == classifier(robust_x.to(torch.float32)).argmax(1)).sum().item()
         i += 1
+        processed += 1
 
+    # MODIFICATION: tracking by number of processed samples instead of total samples in case number of validation samples =/= dataset size
     stat = {
-        "classifier_accuracy": classifier_accuracy / args.num_validation_set,
-        "attack_fail_rate": attack_fail_rate/ args.num_validation_set,
-        "clean_accuracy": clean_accuracy / args.num_validation_set,
-        "robust_accuracy": robust_accuracy / args.num_validation_set,
-        "clean_typical_accuracy": clean_typical_accuracy / args.num_validation_set,
-        "typical_accuracy": typical_accuracy / args.num_validation_set,
+        "classifier_accuracy": classifier_accuracy / processed,
+        "attack_fail_rate": attack_fail_rate / processed,
+        "clean_accuracy": clean_accuracy / processed,
+        "robust_accuracy": robust_accuracy / processed,
+        "clean_typical_accuracy": clean_typical_accuracy / processed,
+        "typical_accuracy": typical_accuracy / processed,
     }
 
     stat = pd.DataFrame(stat, index=[0])

@@ -24,7 +24,9 @@ python train_lora.py \
     --seed=3407
 
 ## Test Commands
-python test.py --model="LCM" --output_dir="output/" --num_validation_set=1000 --lora_input_dir="logs/OSCP/unet_lora/" --strength=0.2 --num_inference_step=5 --device="cuda"
+python test.py --model="LCM" --output_dir="output/" --num_validation_set=1000 --lora_input_dir="logs/OSCP/unet_lora/" --strength=0.2 --num_inference_step=5 --device="cuda" --attack_method="Linf_pgd"
+
+python test.py --model="LCM" --output_dir="output/" --num_validation_set=1000 --lora_input_dir="logs/OSCP/unet_lora/" --strength=0.2 --num_inference_step=5 --device="cuda" --attack_method="AutoAttack"
 
 ## TMP Advertorch patch
 def zero_gradients(x):
