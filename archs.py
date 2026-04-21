@@ -4,7 +4,7 @@ from dataset import get_normalize_layer
 import torchvision
 from transformers import BeitForImageClassification
 import torch
-from dinov3 import DINOv3ViTs16
+from cub_dino_v3_model import DINOv3ViTs16
 
 
 def get_archs(arch, dataset='imagenet'):
