@@ -7,7 +7,7 @@ import torch
 
 
 def get_archs(arch, dataset='imagenet'):
-    if dataset == 'imagenet' or dataset == "cub200":
+    if dataset == 'imagenet':
         if arch == 'resnet50':
             model = torchvision.models.resnet50(weights="DEFAULT")
         
@@ -25,7 +25,9 @@ def get_archs(arch, dataset='imagenet'):
 
         elif arch == 'convnext_b':
             model = torchvision.models.convnext_base(weights='DEFAULT')
-    
+    elif dataset == "cub200":
+        model = torch.hub.load('nicolalandro/ntsnet-cub200', 'ntsnet', pretrained=True,
+                       **{'topN': 6, 'device':'cpu', 'num_classes': 200})
     normalize_layer = get_normalize_layer(dataset)
     
     return torch.nn.Sequential(normalize_layer, model)
