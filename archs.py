@@ -28,13 +28,13 @@ def get_archs(arch, dataset='imagenet'):
             model = torchvision.models.convnext_base(weights='DEFAULT')
     elif dataset == "cub200":
         model = DINOv3ViTs16(
-            repo_dir='../dinov3',
+            repo_dir='../dinov3/',
             weights_path='../dinov3/dinov3_vits16_pretrain_lvd1689m.pth',
             num_classes=200,
             freeze_backbone=True,
         )
 
-        model.load_state_dict(torch.load('cub_dinov3_vits16.pth', map_location='cuda'))
+        model.load_state_dict(torch.load('../cub_dinov3_vits16.pt', map_location='cuda'))
         model.eval()
         
     normalize_layer = get_normalize_layer(dataset)

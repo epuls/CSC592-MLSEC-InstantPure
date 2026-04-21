@@ -23,4 +23,4 @@ tqdm
 transformers
 xformers
 blobfile
-
+termcolor
