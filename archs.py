@@ -34,7 +34,9 @@ def get_archs(arch, dataset='imagenet'):
             freeze_backbone=True,
         )
 
-        model.load_state_dict(torch.load('../cub_dinov3_vits16.pt', map_location='cuda'))
+        weights = torch.load('../cub_dinov3_vits16.pt', map_location='cuda')
+
+        model.load_state_dict(weights)
         model.eval()
         
     normalize_layer = get_normalize_layer(dataset)
