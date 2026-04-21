@@ -41,7 +41,8 @@ class DINOv3ViTs16(torch.nn.Module):
 
 if __name__ == "__main__":
     # quick test to verify the model can be instantiated and run a forward pass
-    model = DINOv3ViTs16()
+    model = DINOv3ViTs16(repo_dir='../dinov3/',
+            weights_path='../dinov3/dinov3_vits16_pretrain_lvd1689m.pth',)
     dummy_input = torch.randn(2, 3, 224, 224)  # Batch of 2 images
     with torch.no_grad():
         output = model(dummy_input)
