@@ -4,6 +4,7 @@ from dataset import get_normalize_layer
 import torchvision
 from transformers import BeitForImageClassification
 import torch
+from dinov3 import DINOv3ViTs16
 
 
 def get_archs(arch, dataset='imagenet'):
@@ -26,8 +27,16 @@ def get_archs(arch, dataset='imagenet'):
         elif arch == 'convnext_b':
             model = torchvision.models.convnext_base(weights='DEFAULT')
     elif dataset == "cub200":
-        model = torch.hub.load('nicolalandro/ntsnet-cub200', 'ntsnet', pretrained=True,
-                       **{'topN': 6, 'device':'cpu', 'num_classes': 200})
+        model = DINOv3ViTs16(
+            repo_dir='../dinov3',
+            weights_path='../dinov3/dinov3_vits16_pretrain_lvd1689m.pth',
+            num_classes=200,
+            freeze_backbone=True,
+        )
+
+        model.load_state_dict(torch.load('cub_dinov3_vits16.pth', map_location='cuda'))
+        model.eval()
+        
     normalize_layer = get_normalize_layer(dataset)
     
     return torch.nn.Sequential(normalize_layer, model)
