@@ -9,6 +9,7 @@ import numpy as np
 import os
 import pickle
 import torch
+from uccon_ballots_dataset import UConnDataset
 
 # set this environment variable to the location of your imagenet directory if you want to read ImageNet data.
 # make sure your val directory is preprocessed to look like the train directory, e.g. by running this script
@@ -16,10 +17,12 @@ import torch
 os.environ['IMAGENET_LOC_ENV'] = "./image_net"
 os.environ['celebA'] = "./datasets/CelebA-HQ"
 os.environ['CUB200_LOC_ENV'] = "./CUB_200_2011"
+os.environ['UCONN_LOC_ENV'] = "./uconn_voter_center_v2_2/FINALDATASETV3"
+
 
 
 # list of all datasets
-DATASETS = ["imagenet", "celebA", "cub200"]
+DATASETS = ["imagenet", "celebA", "cub200", "uconn"]
 
 
 
@@ -40,6 +43,10 @@ def get_dataset(dataset: str, split: str, adv=False) -> Dataset:
     
     elif dataset == "cub200":
         return _cub200(split)
+    
+    elif dataset == "uconn":
+        return _uconn(split, variant="Combined_Grayscale")
+
 
     elif dataset == "IQA":
         transform = transforms.Compose([
@@ -53,6 +60,8 @@ def get_num_classes(dataset: str):
         return 1000
     if 'cub200' in dataset:
         return 200
+    if 'uconn' in dataset:
+        return 2
 
 
 def get_normalize_layer(dataset: str, diff=None) -> torch.nn.Module:
@@ -64,6 +73,8 @@ def get_normalize_layer(dataset: str, diff=None) -> torch.nn.Module:
         return NormalizeLayer(_IMAGENET_MEAN, _IMAGENET_STDDEV)
     if dataset == "cub200":
         return NormalizeLayer(_IMAGENET_MEAN, _IMAGENET_STDDEV)
+    if dataset == "uconn":
+        return NormalizeLayer(_UCONN_MEAN, _UCONN_STD)
 
 # Unused and InputCenterLayer is not defined
 #def get_input_center_layer(dataset: str) -> torch.nn.Module:
@@ -74,8 +85,25 @@ def get_normalize_layer(dataset: str, diff=None) -> torch.nn.Module:
 _IMAGENET_MEAN = [0.485, 0.456, 0.406]
 _IMAGENET_STDDEV = [0.229, 0.224, 0.225]
 
+# UConn voter-center ballots — pixel values normalised to [0, 1]
+_UCONN_MEAN = [0.5]
+_UCONN_STD  = [0.5]
+
 _DIFF_MEAN = [0, 0, 0]
 _DIFF_STD = [1, 1, 1]
+
+
+def _uconn(split: str, variant: str = "Combined_Grayscale") -> Dataset:
+    root = os.path.join(os.environ['UCONN_LOC_ENV'], "preprint")
+    if split == "train":
+        pth = os.path.join(root, f"train_{variant}.pth")
+        transform = transforms.RandomHorizontalFlip()
+    elif split == "test":
+        pth = os.path.join(root, f"val_{variant}.pth")
+        transform = None
+    else:
+        raise ValueError(f"Unsupported split for uconn: {split!r}")
+    return UConnDataset(pth, transform=transform)
 
 def _celebA(split: str) -> Dataset:
     return datasets.ImageFolder(os.environ['celebahq'] ,transform=transforms.Compose([

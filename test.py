@@ -279,12 +279,12 @@ def Global(classifier, device, respace, t, args, eps=16, iter=10, name='attack_g
 
     mp(save_path + "/visualization/")
     seed_everything(args.seed)
-    classifier = get_archs(classifier, 'cub200')  
+    classifier = get_archs(classifier, 'uconn')  
     classifier = classifier.to(device)
     classifier.eval()
 
     dataset = get_dataset(
-        'cub200', split='test', adv=False
+        'uconn', split='test', adv=False
     )
 
     test_loader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=8)

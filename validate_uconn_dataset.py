@@ -3,11 +3,11 @@ import uccon_ballots_dataset
 import uconn_ballots_dino_v3_model
 
 def validate_dataset(root="./uconn_voter_center_v2_2/FINALDATASETV3/preprint/", variant="Combined_Grayscale"):
-    dataset = uccon_ballots_dataset.UConnGrayscaleDataset(pth_path=f"{root}train_{variant}.pth")
+    dataset = uccon_ballots_dataset.UConnDataset(pth_path=f"{root}train_{variant}.pth")
     print(f"Dataset length: {len(dataset)}")
     sample = dataset[0]
     print(f"Sample shape: {sample[0].shape}, Label: {sample[1]}")
-    train, val, test = uccon_ballots_dataset.get_uconn_grayscale_dataloaders(batch_size=32, variant=variant)
+    train, val, test = uccon_ballots_dataset.get_uconn_dataloaders(batch_size=32, variant=variant)
 
 def validate_model(variant="Combined_Grayscale"):
     model = uconn_ballots_dino_v3_model.DINOv3UConnModel(num_classes=2)
@@ -19,7 +19,7 @@ def validate_model(variant="Combined_Grayscale"):
 
 def display_sample_images(root="./uconn_voter_center_v2_2/FINALDATASETV3/preprint/", variant="Combined_Grayscale"):
     import matplotlib.pyplot as plt
-    dataset = uccon_ballots_dataset.UConnGrayscaleDataset(pth_path=f"{root}train_{variant}.pth")
+    dataset = uccon_ballots_dataset.UConnDataset(pth_path=f"{root}train_{variant}.pth")
     random_indices = torch.randperm(len(dataset))[:2]  # get 2 random indices
     for i in random_indices:
         sample = dataset[i]

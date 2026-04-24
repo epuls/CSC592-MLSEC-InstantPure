@@ -5,6 +5,7 @@ import torchvision
 from transformers import BeitForImageClassification
 import torch
 from cub_dino_v3_model import DINOv3ViTs16
+from uconn_ballots_dino_v3_model import DINOv3UConnModel
 
 
 def get_archs(arch, dataset='imagenet'):
@@ -36,6 +37,15 @@ def get_archs(arch, dataset='imagenet'):
 
         weights = torch.load('../cub_dinov3_vits16.pt', map_location='cuda')
 
+        model.load_state_dict(weights['model_state_dict'])
+        model.eval()
+    elif dataset == "uconn":
+        model = DINOv3UConnModel(num_classes=2, 
+                                 repo_dir='../dinov3/', 
+                                 weights_path='../dinov3/dinov3_vits16_pretrain_lvd1689m.pth', 
+                                 freeze_backbone=True
+                                 )
+        weights = torch.load('../uconn_dinov3_vits16.pt', map_location='cuda')
         model.load_state_dict(weights['model_state_dict'])
         model.eval()
         

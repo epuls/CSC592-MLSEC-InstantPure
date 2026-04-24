@@ -285,7 +285,7 @@ def main(args):
     # Here, we compute not just the text embeddings but also the additional embeddings
     # needed for the SD XL UNet to operate.
     # MODIFIED: clamp max samples to length of dataset
-    dataset = get_dataset("cub200", split="train")
+    dataset = get_dataset("uconn", split="train")
     if args.max_train_samples is not None:
         n = min(len(dataset), args.max_train_samples)
         random_indices = random.sample(range(len(dataset)), n)

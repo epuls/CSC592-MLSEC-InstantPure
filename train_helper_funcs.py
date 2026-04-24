@@ -99,6 +99,14 @@ class CheckpointManager:
         self.every_n_epochs = checkpoint_config.get("every_n_epochs", 1)
         self.best_value = None
 
+    def get_checkpoint_path(self, which="best"):
+        if which == "best":
+            return self.dir / "best.pt"
+        elif which == "last":
+            return self.dir / "last.pt"
+        else:
+            raise ValueError(f"Unknown checkpoint type: {which}")
+
     def step(self, epoch, model, optimizer, scheduler, metrics: dict):
         if not self.enabled:
             return

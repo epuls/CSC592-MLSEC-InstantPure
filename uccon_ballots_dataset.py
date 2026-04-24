@@ -2,21 +2,19 @@ from pathlib import Path
 import torch
 import matplotlib.pyplot as plt
 import random
-from torch.utils.data import Dataset, Subset, DataLoader, random_split
+from torch.utils.data import Dataset, Subset, DataLoader
 
 
-
-class UConnGrayscaleDataset(Dataset):
+class UConnDataset(Dataset):
     """
-    UConn voter center grayscale dataset loaded from a .pth file.
+    UConn voter center dataset loaded from a .pth file.
 
-    The .pth file must contain:
-        data          — Tensor of shape (N, 1, H, W) or (N, H, W)
-        binary_labels — Tensor of shape (N,) with integer class labels
+    Supports both grayscale and RGB variants — channel layout is normalised
+    automatically to ``(N, C, H, W)`` regardless of how the file was saved:
 
     Args:
-        pth_path: Full path to the .pth file to load.
-        transform:  Optional transform applied to each image tensor.
+        pth_path:  Full path to the .pth file to load.
+        transform: Optional transform applied to each image tensor.
     """
 
     def __init__(self, pth_path: str, transform=None):
@@ -25,9 +23,13 @@ class UConnGrayscaleDataset(Dataset):
         self.data: torch.Tensor = raw["data"]
         self.labels: torch.Tensor = raw["binary_labels"].long()
 
-        # Ensure shape is (N, C, H, W)
+        # Normalise to (N, C, H, W)
         if self.data.ndim == 3:
+            # (N, H, W) — grayscale without channel dim
             self.data = self.data.unsqueeze(1)
+        elif self.data.ndim == 4 and self.data.shape[1] not in (1, 3):
+            # (N, H, W, C) — channels-last layout
+            self.data = self.data.permute(0, 3, 1, 2).contiguous()
 
     def __len__(self) -> int:
         return len(self.data)
@@ -42,59 +44,127 @@ class UConnGrayscaleDataset(Dataset):
         return image, label
 
 
-def get_uconn_grayscale_dataloaders(
+def _load_or_create_split(
+    split_file: Path,
+    n_total: int,
+    test_size: int,
+    seed: int,
+) -> tuple:
+    """
+    Return ``(main_indices, test_indices)``.
+
+    If *split_file* exists, load test indices from it (one integer per line).
+    Otherwise randomly sample *test_size* indices, write them to *split_file*
+    for reproducibility, then derive the complementary main indices.
+    """
+    if split_file.exists():
+        test_indices = [int(x) for x in split_file.read_text().splitlines() if x.strip()]
+        if len(test_indices) != test_size:
+            print(
+                f"Warning: split file contains {len(test_indices)} indices "
+                f"but test_size={test_size}. Using file as-is."
+            )
+        print(f"Loaded test split from {split_file} ({len(test_indices)} samples)")
+    else:
+        generator = torch.Generator().manual_seed(seed)
+        shuffled = torch.randperm(n_total, generator=generator).tolist()
+        test_indices = shuffled[:test_size]
+        split_file.write_text("\n".join(str(i) for i in test_indices))
+        print(f"Created test split → {split_file} ({len(test_indices)} samples)")
+
+    test_set = set(test_indices)
+    main_indices = [i for i in range(n_total) if i not in test_set]
+    return main_indices, test_indices
+
+
+def get_uconn_dataloaders(
     batch_size: int = 32,
     test_size: int = 200,
+    test_source: str = "val",
     root: str = "./uconn_voter_center_v2_2/FINALDATASETV3/",
+    variant: str = "Combined_Grayscale",
     transform=None,
     val_transform=None,
     num_workers: int = 4,
-    pin_memory: bool = True,
+    pin_memory: bool = False,
     persistent_workers: bool = False,
     seed: int = 42,
-    variant: str = "Combined_Grayscale"
 ):
     """
-    Build train / val / test DataLoaders for the UConn grayscale preprint dataset.
+    Build train / val / test DataLoaders for the UConn voter-center dataset.
 
-    - train + test: split from ``preprint/train_{variant}.pth``
-    - val:          loaded directly from ``preprint/val_{variant}.pth``
+    Args:
+        test_source: ``"train"`` — test indices are carved from
+                     ``preprint/train_{variant}.pth``; the remaining samples
+                     form the training set and ``preprint/val_{variant}.pth``
+                     is used as-is for validation.
 
-    Each loader returns batches of ``(image, label, sample_id)`` via IndexedDataset.
+                     ``"val"``   — test indices are carved from
+                     ``preprint/val_{variant}.pth``; the remaining val samples
+                     stay as the validation set and the full train file is used
+                     for training.
+
+        variant:     Filename stem, e.g. ``"Combined_Grayscale"`` or
+                     ``"Combined_RGB"``.  A file named
+                     ``split_{variant}.txt`` in *root* stores the chosen test
+                     indices for reproducibility; it is created automatically
+                     on the first run if absent.
     """
-    root_path = Path(root).resolve()
-    train_pth = root_path / "preprint" / f"train_{variant}.pth"
-    val_pth   = root_path / "preprint" / f"val_{variant}.pth"
+    if test_source not in ("train", "val"):
+        raise ValueError(f"test_source must be 'train' or 'val', got {test_source!r}")
+
+    root_path  = Path(root).resolve()
+    train_pth  = root_path / "preprint" / f"train_{variant}.pth"
+    val_pth    = root_path / "preprint" / f"val_{variant}.pth"
+    split_file = root_path / f"split_{variant}.txt"
 
     if not train_pth.exists():
         raise FileNotFoundError(f"Missing train file: {train_pth}")
     if not val_pth.exists():
         raise FileNotFoundError(f"Missing val file: {val_pth}")
 
-    # Load twice so train and test can have independent transforms
-    train_full = UConnGrayscaleDataset(str(train_pth), transform=transform)
-    test_full  = UConnGrayscaleDataset(str(train_pth), transform=val_transform)
-    val_data   = UConnGrayscaleDataset(str(val_pth),   transform=val_transform)
+    if test_source == "train":
+        # Load train file twice so train/test can carry independent transforms
+        source_for_train = UConnDataset(str(train_pth), transform=transform)
+        source_for_test  = UConnDataset(str(train_pth), transform=val_transform)
+        val_data         = UConnDataset(str(val_pth),   transform=val_transform)
 
-    n_total = len(train_full)
-    if test_size >= n_total:
-        raise ValueError(
-            f"test_size ({test_size}) must be smaller than train file size ({n_total})"
+        n_source = len(source_for_train)
+        if test_size >= n_source:
+            raise ValueError(f"test_size ({test_size}) >= train file size ({n_source})")
+
+        train_indices, test_indices = _load_or_create_split(
+            split_file, n_source, test_size, seed
         )
 
-    train_size = n_total - test_size
-    print(f"Train size: {train_size}, Train Shape: {train_full.data[:train_size].shape}")
-    print(f"Val size:   {len(val_data)}, Val Shape: {val_data.data.shape}")
-    print(f"Test size:  {test_size}, Test Shape: {test_full.data[train_size:].shape}")
-    print(f"Root filepath: {root_path}")
+        train_data = Subset(source_for_train, train_indices)
+        test_data  = Subset(source_for_test,  test_indices)
 
-    generator = torch.Generator().manual_seed(seed)
-    all_indices = torch.randperm(n_total, generator=generator).tolist()
-    train_indices = all_indices[:train_size]
-    test_indices  = all_indices[train_size:]
+    else:  # test_source == "val"
+        train_data = UConnDataset(str(train_pth), transform=transform)
+        source_val = UConnDataset(str(val_pth),   transform=val_transform)
 
-    train_data = Subset(train_full, train_indices)
-    test_data  = Subset(test_full,  test_indices)
+        n_source = len(source_val)
+        if test_size >= n_source:
+            raise ValueError(f"test_size ({test_size}) >= val file size ({n_source})")
+
+        val_indices, test_indices = _load_or_create_split(
+            split_file, n_source, test_size, seed
+        )
+
+        val_data  = Subset(source_val, val_indices)
+        test_data = Subset(source_val, test_indices)
+
+    n_channels = (
+        source_for_train.data.shape[1]
+        if test_source == "train"
+        else source_val.data.shape[1]
+    )
+    print(f"Variant:    {variant}  |  channels: {n_channels}")
+    print(f"Train size: {len(train_data)}")
+    print(f"Val size:   {len(val_data)}")
+    print(f"Test size:  {len(test_data)}")
+    print(f"Root:       {root_path}")
 
     train_loader = DataLoader(
         train_data,
