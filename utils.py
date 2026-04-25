@@ -40,7 +40,7 @@ def cprint(x, c):
     print(c_t, x)
     print(Style.RESET_ALL)
 
-def si(x, p, to_01=False, normalize=False):
+def si(x, p, to_01=False, normalize=True):
     if isinstance(x, np.ndarray):
         x = torch.from_numpy(x)
     if to_01:

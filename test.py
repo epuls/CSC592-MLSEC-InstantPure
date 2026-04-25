@@ -54,8 +54,20 @@ def parse_args():
     parser.add_argument("--classifier", default="resnet50", type=str, help="classification model")
     parser.add_argument("--attack_method", default="Linf_pgd", type=str, help="attack model")
     parser.add_argument("--device", default=0, help="gpu:?")
+    parser.add_argument("--denormalize_output", default=False, action="store_true",
+                        help="undo ImageNet normalization before saving images")
+    parser.add_argument("--eps", default=4, type=float, help="adversarial epsilon budget (pixel units /255)")
+    parser.add_argument("--iter", default=10, type=int, help="number of PGD iterations")
+    parser.add_argument("--alpha", default=1, type=float, help="PGD step size (pixel units /255)")
     args = parser.parse_args()
     return args
+
+_IMAGENET_MEAN = torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1)
+_IMAGENET_STD  = torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1)
+
+def denorm_for_save(x):
+    """Undo ImageNet normalisation for display/saving only. Returns a new CPU tensor in [0,1]."""
+    return (x.cpu().float() * _IMAGENET_STD + _IMAGENET_MEAN).clamp(0, 1)
 
 def seed_everything(seed=3407):
     random.seed(seed)
@@ -132,6 +144,9 @@ class Denoised_Classifier(torch.nn.Module):
 
         start=time.time()
 
+        # Denormalize from ImageNet space to [0,1] before PIL/Canny and pipe
+        x = (_IMAGENET_MEAN.to(x.device) * x + _IMAGENET_STD.to(x.device)).clamp(0, 1)
+
         pil_x = TF.to_pil_image(x.squeeze(0))
         image = np.array(pil_x)
         image = cv2.Canny(image, 100, 200)
@@ -140,7 +155,7 @@ class Denoised_Classifier(torch.nn.Module):
         control_image = Image.fromarray(image)
         control_image = control_image.resize((512, 512), resample=Image.NEAREST)
 
-        x = torch.clamp(x, 0, 1)  # assume the input is 0-1
+        x = torch.clamp(x, 0, 1)  # already [0,1] after denorm above
         generator = torch.manual_seed(args.seed)
 
         image = pipe(
@@ -268,6 +283,13 @@ def generate_x_adv_denoised_v2(x, y, diffusion, model, classifier, pgd_conf, dev
     x_adv = torch.clamp(x + delta, 0, 1)
     return x_adv.detach()
 
+def denormalize(tensor, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
+    """Reverse ImageNet normalization for display."""
+    t = tensor.clone().cpu().float()
+    for c, m, s in zip(range(t.shape[0]), mean, std):
+        t[c] = t[c] * s + m
+    return t.permute(1, 2, 0).clamp(0, 1).numpy()
+
 def Global(classifier, device, respace, t, args, eps=16, iter=10, name='attack_global', alpha=2, version="v1"):
     pgd_conf = gen_pgd_confs(eps=eps, alpha=alpha, iter=iter, input_range=(0, 1))
     if args.load_origin_lora:
@@ -348,9 +370,7 @@ def Global(classifier, device, respace, t, args, eps=16, iter=10, name='attack_g
 
     mp(save_path + "/clean_image/")
     mp(save_path + "/robust_image/")
-    mp(save_path + "/canny_image/")
     mp(save_path + "/adversarial_image/")
-    mp(save_path + "/typical_image/")
     
     i = 1
     processed = 0
@@ -376,9 +396,12 @@ def Global(classifier, device, respace, t, args, eps=16, iter=10, name='attack_g
             denoised_clean_x, natual_canny = net.lcm_lora_denoise(x, pipe, device)
             robust_x, adv_canny = net.lcm_lora_denoise(x_adv, pipe, device)
         
-        si(x, save_path + f'/clean_image/{i}.png')
-        si(robust_x, save_path + f'/robust_image/{i}.png')
-        si(x_adv, save_path + f'/adversarial_image/{i}.png')
+        # x and x_adv are ImageNet-normalized; robust_x is already [0,1] from the pipe
+        _x_save    = denorm_for_save(x)    if args.denormalize_output else x
+        _xadv_save = denorm_for_save(x_adv) if args.denormalize_output else x_adv
+        si(_x_save,    save_path + f'/clean_image/{i}.png')
+        si(robust_x,   save_path + f'/robust_image/{i}.png')   # pipe output is always [0,1]
+        si(_xadv_save, save_path + f'/adversarial_image/{i}.png')
         
         clean_accuracy += (y == classifier(denoised_clean_x.to(torch.float32)).argmax(1)).sum().item()
         robust_accuracy += (y == classifier(robust_x.to(torch.float32)).argmax(1)).sum().item()
@@ -402,5 +425,5 @@ def Global(classifier, device, respace, t, args, eps=16, iter=10, name='attack_g
 
 if __name__ == '__main__':
     args = parse_args()
-    Global(args.classifier, args.device, 'ddim50', t=150, eps=4, iter=1, name='attack_global_gradpass', alpha=1,                     #4/255 pgd-100 if want to run autoattack 4/255 just run this and add args.attack_method=AutoAttack
+    Global(args.classifier, args.device, 'ddim50', t=150, eps=args.eps, iter=args.iter, name='attack_global_gradpass', alpha=args.alpha,
                 args=args, version="v1")
