@@ -14,5 +14,6 @@ class DecodeClassifier(torch.nn.Module):
         out = self.vae.decode(x / self.scaling_factor)["sample"]
         out = out / 2 + 0.5
         out = F.interpolate(out, size=self.size, mode="bilinear")
+        out = out.float()
         out = self.classifier(out)
         return out
