@@ -144,9 +144,6 @@ class Denoised_Classifier(torch.nn.Module):
 
         start=time.time()
 
-        # Denormalize from ImageNet space to [0,1] before PIL/Canny and pipe
-        x = (_IMAGENET_MEAN.to(x.device) * x + _IMAGENET_STD.to(x.device)).clamp(0, 1)
-
         pil_x = TF.to_pil_image(x.squeeze(0))
         image = np.array(pil_x)
         image = cv2.Canny(image, 100, 200)
@@ -155,7 +152,7 @@ class Denoised_Classifier(torch.nn.Module):
         control_image = Image.fromarray(image)
         control_image = control_image.resize((512, 512), resample=Image.NEAREST)
 
-        x = torch.clamp(x, 0, 1)  # already [0,1] after denorm above
+        x = torch.clamp(x, 0, 1)  # assume the input is 0-1
         generator = torch.manual_seed(args.seed)
 
         image = pipe(
