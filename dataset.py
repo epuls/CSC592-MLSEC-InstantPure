@@ -92,17 +92,19 @@ _DIFF_MEAN = [0, 0, 0]
 _DIFF_STD = [1, 1, 1]
 
 
-def _ensure_3_channels(x):
-    if x.shape[0] == 1:
-        return x.repeat(3, 1, 1)
-    return x
+class Ensure3Channels:
+    def __call__(self, x):
+        if x.shape[0] == 1:
+            return x.repeat(3, 1, 1)
+        return x
+
 
 def _uconn(split: str, variant: str = "Combined_Grayscale") -> Dataset:
-    root = os.path.join(os.environ['UCONN_LOC_ENV'], "preprint")
+    root = os.path.join(os.environ["UCONN_LOC_ENV"], "preprint")
 
     common = [
         transforms.Resize((224, 224), antialias=True),
-        transforms.Lambda(transforms.Lambda(_ensure_3_channels)),
+        Ensure3Channels(),
         transforms.Normalize(_IMAGENET_MEAN, _IMAGENET_STDDEV),
     ]
 

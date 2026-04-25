@@ -5,51 +5,76 @@ import random
 from torch.utils.data import Dataset, Subset, DataLoader
 
 
+from pathlib import Path
+import torch
+from torch.utils.data import Dataset
+
+
 class UConnDataset(Dataset):
     """
-    UConn voter center dataset loaded from a .pth file.
-
-    Supports both grayscale and RGB variants — channel layout is normalised
-    automatically to ``(N, C, H, W)`` regardless of how the file was saved:
-
-    Args:
-        pth_path:  Full path to the .pth file to load.
-        transform: Optional transform applied to each image tensor.
+    UConn ballot dataset loaded from a .pth file.
+      - stores only CPU tensors
+      - __getitem__ returns (image, label)
+      - image is a CPU float tensor in C,H,W layout
+      - transform handles resize/channel/normalization
     """
 
-    def __init__(self, pth_path: str, transform=None):
+    def __init__(self, pth_path: str, transform=None, target_transform=None):
+        self.pth_path = Path(pth_path)
         self.transform = transform
-        raw = torch.load(pth_path, map_location="cpu", weights_only=False)
-        self.data = raw["data"].cpu()
-        self.labels = raw["binary_labels"].long().cpu()
+        self.target_transform = target_transform
 
-        # Normalise to (N, C, H, W)
+        if not self.pth_path.exists():
+            raise FileNotFoundError(f"Missing UConn dataset file: {self.pth_path}")
+
+        raw = torch.load(str(self.pth_path), map_location="cpu", weights_only=False)
+
+        self.data = raw["data"].detach().cpu()
+        self.targets = raw["binary_labels"].detach().long().cpu()
+
+        if len(self.data) != len(self.targets):
+            raise RuntimeError(
+                f"Data/label length mismatch: {len(self.data)} vs {len(self.targets)}"
+            )
+
+        # Normalize storage layout to N,C,H,W.
         if self.data.ndim == 3:
-            # (N, H, W) — grayscale without channel dim
+            # N,H,W -> N,1,H,W
             self.data = self.data.unsqueeze(1)
-        elif self.data.ndim == 4 and self.data.shape[1] not in (1, 3):
-            # (N, H, W, C) — channels-last layout
-            self.data = self.data.permute(0, 3, 1, 2).contiguous()
+        elif self.data.ndim == 4:
+            if self.data.shape[1] in (1, 3):
+                # already N,C,H,W
+                pass
+            elif self.data.shape[-1] in (1, 3):
+                # N,H,W,C -> N,C,H,W
+                self.data = self.data.permute(0, 3, 1, 2).contiguous()
+            else:
+                raise RuntimeError(f"Unexpected image tensor shape: {self.data.shape}")
+        else:
+            raise RuntimeError(f"Unexpected image tensor shape: {self.data.shape}")
 
-    def __len__(self) -> int:
-        return len(self.data)
+        self.classes = ["0", "1"]
+        self.class_to_idx = {"0": 0, "1": 1}
+        self.samples = list(range(len(self.data)))
 
-    def __getitem__(self, idx: int):
-        image = self.data[idx].float().cpu()
-        label = int(self.labels[idx].item())
+    def __getitem__(self, index: int):
+        image = self.data[index].clone().float()
+        target = int(self.targets[index].item())
 
-        # Ensure C,H,W
-        if image.ndim == 2:
-            image = image.unsqueeze(0)
-
-        # Convert uint8-like data to [0, 1]
-        if image.max() > 1:
+        # Match torchvision ToTensor behavior: output should be [0, 1].
+        if image.max() > 1.0:
             image = image / 255.0
 
         if self.transform is not None:
             image = self.transform(image)
 
-        return image.contiguous(), label
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return image.contiguous(), target
+
+    def __len__(self):
+        return len(self.data)
 
 
 def _load_or_create_split(
