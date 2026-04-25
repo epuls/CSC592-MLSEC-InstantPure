@@ -35,4 +35,4 @@ class DINOv3UConnModel(torch.nn.Module):
         else:
             features = self.backbone(x)
 
-        return self.classifier(features)
+        return self.classifier(features.float())
