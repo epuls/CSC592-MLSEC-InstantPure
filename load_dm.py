@@ -26,9 +26,9 @@ from utils import *
 
 
 
-
+#FIXME This needs to be in a config or env variable
 def get_imagenet_dm_conf(class_cond=False, respace="", device='cuda',
-                         model_path='/home/ctlei2/Diff-PGD/ckpt/256x256_diffusion_uncond.pt'):
+                         model_path='D:/MLSEC-Final/Diff-PGD/ckpt/256x256_diffusion_uncond.pt'):
 
     defaults = dict(
         clip_denoised=True,

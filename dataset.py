@@ -73,7 +73,7 @@ def get_normalize_layer(dataset: str, diff=None) -> torch.nn.Module:
     if dataset == "cub200":
         return NormalizeLayer(_IMAGENET_MEAN, _IMAGENET_STDDEV)
     if dataset == "uconn":
-        return torch.nn.Identity()
+        return NormalizeLayer(_IMAGENET_MEAN, _IMAGENET_STDDEV)
 
 # Unused and InputCenterLayer is not defined
 #def get_input_center_layer(dataset: str) -> torch.nn.Module:
@@ -105,7 +105,7 @@ def _uconn(split: str, variant: str = "Combined_Grayscale") -> Dataset:
     common = [
         transforms.Resize((224, 224), antialias=True),
         Ensure3Channels(),
-        transforms.Normalize(_IMAGENET_MEAN, _IMAGENET_STDDEV),
+#        transforms.Normalize(_IMAGENET_MEAN, _IMAGENET_STDDEV),
     ]
 
     if split == "train":
