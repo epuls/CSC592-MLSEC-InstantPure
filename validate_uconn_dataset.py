@@ -7,6 +7,7 @@ def validate_dataset(root="./uconn_voter_center_v2_2/FINALDATASETV3/preprint/", 
     print(f"Dataset length: {len(dataset)}")
     sample = dataset[0]
     print(f"Sample shape: {sample[0].shape}, Label: {sample[1]}")
+
     train, val, test = uccon_ballots_dataset.get_uconn_dataloaders(batch_size=32, variant=variant)
 
 def validate_model(variant="Combined_Grayscale"):
@@ -28,6 +29,20 @@ def display_sample_images(root="./uconn_voter_center_v2_2/FINALDATASETV3/preprin
         plt.imshow(image, cmap='gray')
         plt.title(f"Label: {label}")
         plt.show()
+
+def validate_model_loads_dataset(root="./uconn_voter_center_v2_2/FINALDATASETV3/preprint/", variant="Combined_Grayscale", transforms = None):
+    train, val, test = uccon_ballots_dataset.get_uconn_dataloaders(batch_size=32, variant=variant, transform=transforms, test_size=1000, num_workers=0)
+    print(f"Train loader batches: {len(train)}, Val loader batches: {len(val)}, Test loader batches: {len(test)}")
+    model = uconn_ballots_dino_v3_model.DINOv3UConnModel(num_classes=2)
+    print("Testing model forward pass with one batch from the training loader...")
+    for images, labels in train:
+        print(f"Input batch shape: {images.shape}, Labels shape: {labels.shape}")
+        outputs = model(images)
+        print(f"Model output shape: {outputs.shape}")
+        break  # just test one batch
+    
+    
+
 
 def validate_uconn(root="./uconn_voter_center_v2_2/FINALDATASETV3/preprint/", variant="Combined_Grayscale"):
     print("Validating UConn Grayscale Dataset...")

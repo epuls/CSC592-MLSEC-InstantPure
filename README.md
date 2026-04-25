@@ -1,4 +1,8 @@
 # Debugging WIP
+## Env Vars
+export MODEL_NAME="stable-diffusion-v1-5/stable-diffusion-v1-5"
+export OUTPUT_DIR="./logs/OSCP"
+
 ## Train Commands
 python train_lora.py \
     --pretrained_teacher_model=$MODEL_NAME \

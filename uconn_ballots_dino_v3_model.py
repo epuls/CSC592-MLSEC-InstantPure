@@ -7,7 +7,7 @@ class DINOv3UConnModel(torch.nn.Module):
             num_classes=2, 
             repo_dir="D:/dinov3/dinov3",
             weights_path="../dinov3_vits16_pretrain_lvd1689m.pth",
-            freeze_backbone: bool = False):
+            freeze_backbone: bool = True):
         super().__init__()
 
         super().__init__()
