@@ -19,9 +19,9 @@ class UConnDataset(Dataset):
 
     def __init__(self, pth_path: str, transform=None):
         self.transform = transform
-        raw = torch.load(pth_path, weights_only=False)
-        self.data: torch.Tensor = raw["data"]
-        self.labels: torch.Tensor = raw["binary_labels"].long()
+        raw = torch.load(pth_path, map_location="cpu", weights_only=False)
+        self.data = raw["data"].cpu()
+        self.labels = raw["binary_labels"].long().cpu()
 
         # Normalise to (N, C, H, W)
         if self.data.ndim == 3:
@@ -35,7 +35,7 @@ class UConnDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx: int):
-        image = self.data[idx].float()
+        image = self.data[idx].float().cpu()
         label = int(self.labels[idx].item())
 
         # Ensure C,H,W
@@ -49,7 +49,7 @@ class UConnDataset(Dataset):
         if self.transform is not None:
             image = self.transform(image)
 
-        return image, label
+        return image.contiguous(), label
 
 
 def _load_or_create_split(
