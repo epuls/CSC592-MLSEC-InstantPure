@@ -65,7 +65,6 @@ def get_num_classes(dataset: str):
 
 
 def get_normalize_layer(dataset: str, diff=None) -> torch.nn.Module:
-    """Return the dataset's normalization layer"""
     if diff:
         return NormalizeLayer(_DIFF_MEAN, _DIFF_STD)
 
@@ -74,7 +73,7 @@ def get_normalize_layer(dataset: str, diff=None) -> torch.nn.Module:
     if dataset == "cub200":
         return NormalizeLayer(_IMAGENET_MEAN, _IMAGENET_STDDEV)
     if dataset == "uconn":
-        return NormalizeLayer(_UCONN_MEAN, _UCONN_STD)
+        return torch.nn.Identity()
 
 # Unused and InputCenterLayer is not defined
 #def get_input_center_layer(dataset: str) -> torch.nn.Module:
@@ -95,14 +94,25 @@ _DIFF_STD = [1, 1, 1]
 
 def _uconn(split: str, variant: str = "Combined_Grayscale") -> Dataset:
     root = os.path.join(os.environ['UCONN_LOC_ENV'], "preprint")
+
+    common = [
+        transforms.Resize((224, 224), antialias=True),
+        transforms.Lambda(lambda x: x.repeat(3, 1, 1) if x.shape[0] == 1 else x),
+        transforms.Normalize(_IMAGENET_MEAN, _IMAGENET_STDDEV),
+    ]
+
     if split == "train":
         pth = os.path.join(root, f"train_{variant}.pth")
-        transform = transforms.RandomHorizontalFlip()
+        transform = transforms.Compose([
+            transforms.RandomHorizontalFlip(),
+            *common,
+        ])
     elif split == "test":
         pth = os.path.join(root, f"val_{variant}.pth")
-        transform = None
+        transform = transforms.Compose(common)
     else:
         raise ValueError(f"Unsupported split for uconn: {split!r}")
+
     return UConnDataset(pth, transform=transform)
 
 def _celebA(split: str) -> Dataset:

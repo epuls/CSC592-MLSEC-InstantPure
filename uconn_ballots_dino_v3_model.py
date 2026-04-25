@@ -29,16 +29,6 @@ class DINOv3UConnModel(torch.nn.Module):
         )
 
     def forward(self, x):
-        x = x.repeat(1, 3, 1, 1)
-        x = F.interpolate(x, size=(224, 224), mode="bilinear", align_corners=False)
-
-        # if raw data is uint8-like
-        x = x / 255.0
-
-        mean = torch.tensor([0.485, 0.456, 0.406], device=x.device).view(1, 3, 1, 1)
-        std = torch.tensor([0.229, 0.224, 0.225], device=x.device).view(1, 3, 1, 1)
-        x = (x - mean) / std
-
         if self.freeze_backbone:
             with torch.no_grad():
                 features = self.backbone(x)

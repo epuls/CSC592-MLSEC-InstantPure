@@ -38,6 +38,14 @@ class UConnDataset(Dataset):
         image = self.data[idx].float()
         label = int(self.labels[idx].item())
 
+        # Ensure C,H,W
+        if image.ndim == 2:
+            image = image.unsqueeze(0)
+
+        # Convert uint8-like data to [0, 1]
+        if image.max() > 1:
+            image = image / 255.0
+
         if self.transform is not None:
             image = self.transform(image)
 
