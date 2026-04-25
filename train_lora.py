@@ -386,7 +386,7 @@ def main(args):
     )
 
     # prepare classifier:
-    classifier = get_archs(args.surrogate_model, 'cub200')
+    classifier = get_archs(args.surrogate_model, 'uconn')
     classifier = classifier.to(accelerator.device).eval()
     decode_classifier = DecodeClassifier(classifier=classifier, vae=vae, scaling_factor=vae.config.scaling_factor,
                                          size=(args.classifier_resolution, args.classifier_resolution))
