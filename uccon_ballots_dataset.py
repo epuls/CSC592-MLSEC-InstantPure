@@ -114,6 +114,7 @@ def get_uconn_dataloaders(
     batch_size: int = 32,
     test_size: int = 200,
     test_source: str = "val",
+    print_option: str = "preprint",
     root: str = "./uconn_voter_center_v2_2/FINALDATASETV3/",
     variant: str = "Combined_Grayscale",
     transform=None,
@@ -147,8 +148,8 @@ def get_uconn_dataloaders(
         raise ValueError(f"test_source must be 'train' or 'val', got {test_source!r}")
 
     root_path  = Path(root).resolve()
-    train_pth  = root_path / "preprint" / f"train_{variant}.pth"
-    val_pth    = root_path / "preprint" / f"val_{variant}.pth"
+    train_pth  = root_path / print_option / f"train_{variant}.pth"
+    val_pth    = root_path / print_option / f"val_{variant}.pth"
     split_file = root_path / f"split_{variant}.txt"
 
     if not train_pth.exists():

@@ -26,7 +26,7 @@ DATASETS = ["imagenet", "celebA", "cub200", "uconn"]
 
 
 
-def get_dataset(dataset: str, split: str, adv=False) -> Dataset:
+def get_dataset(dataset: str, split: str, adv=False, uconn_print_option: str = "preprint") -> Dataset:
     """Return the dataset as a PyTorch Dataset object"""
 
     if dataset == "imagenet" and adv:
@@ -45,7 +45,7 @@ def get_dataset(dataset: str, split: str, adv=False) -> Dataset:
         return _cub200(split)
     
     elif dataset == "uconn":
-        return _uconn(split, variant="Combined_Grayscale")
+        return _uconn(split, variant="Combined_Grayscale", print_option=uconn_print_option)
 
 
     elif dataset == "IQA":
@@ -99,8 +99,9 @@ class Ensure3Channels:
         return x
 
 
-def _uconn(split: str, variant: str = "Combined_Grayscale") -> Dataset:
-    root = os.path.join(os.environ["UCONN_LOC_ENV"], "preprint")
+def _uconn(split: str, variant: str = "Combined_Grayscale", print_option: str = "preprint") -> Dataset:
+    root = os.path.join(os.environ["UCONN_LOC_ENV"], print_option)
+    print(f"Loading UConn dataset from {root} (variant={variant}, print_option={print_option})")
 
     common = [
         transforms.Resize((224, 224), antialias=True),
