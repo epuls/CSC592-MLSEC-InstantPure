@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
 LORA_DIR="logs/OSCP/unet_lora/"
 N=1000
@@ -24,7 +23,6 @@ run_test () {
     --num_inference_step=5 \
     --device="${DEVICE}" \
     --attack_method="${attack}" \
-    --denormalize_output \
     --eps="${eps}" \
     --iter="${iters}" \
     --alpha="${alpha}"

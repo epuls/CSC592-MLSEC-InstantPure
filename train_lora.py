@@ -171,12 +171,15 @@ def main(args):
             "upsamplers.0.conv",
             "time_emb_proj",
         ]
+
+    # CSC592: LoRA insertion into U-Net
     lora_config = LoraConfig(
         r=args.lora_rank,
         target_modules=lora_target_modules,
         lora_alpha=args.lora_alpha,
         lora_dropout=args.lora_dropout,
     )
+
     unet = get_peft_model(unet, lora_config)
 
     # 9. Handle mixed precision and device placement
@@ -388,6 +391,7 @@ def main(args):
     # prepare classifier:
     classifier = get_archs(args.surrogate_model, 'uconn')
     classifier = classifier.to(accelerator.device).eval()
+    # CSC592: Paper's latent attack is on the predicted latents, so we need to decode the classifier's predictions back to pixel space to compute the loss and run the ODE solver steps.
     decode_classifier = DecodeClassifier(classifier=classifier, vae=vae, scaling_factor=vae.config.scaling_factor,
                                          size=(args.classifier_resolution, args.classifier_resolution))
     adversary = LinfPGDAttack(decode_classifier,
@@ -411,6 +415,7 @@ def main(args):
                 # encode pixel values with batch size of at most args.vae_encode_batch_size
                 latents = []
                 for i in range(0, pixel_values.shape[0], args.vae_encode_batch_size):
+                    # CSC592: z = E(x) step in Algorithm 1
                     latents.append(vae.encode(pixel_values[i: i + args.vae_encode_batch_size]).latent_dist.sample())
                 latents = torch.cat(latents, dim=0)
 
@@ -439,6 +444,7 @@ def main(args):
 
                 # 4. Sample noise from the prior and add it to the latents according to the noise magnitude at each
                 # timestep (this is the forward diffusion process) [z_{t_{n + k}} in Algorithm 1]
+                # CSC592: Paper's shifted-noise idea
                 noise = torch.randn_like(latents) + adv_latents - latents
                 noisy_model_input = noise_scheduler.add_noise(latents, noise, start_timesteps)
 
@@ -494,6 +500,7 @@ def main(args):
                         # 4. Run one step of the ODE solver to estimate the next point x_prev on the
                         # augmented PF-ODE trajectory (solving backward in time)
                         # Note that the DDIM step depends on both the predicted x_0 and source noise eps_0.
+                        # CSC592: Paper's PF-ODE / DDIM solver step
                         x_prev = solver.ddim_step(pred_x0, pred_noise, index)
 
                 # 9. Get target LCM prediction on x_prev, w, c, t_n (timesteps)
@@ -518,6 +525,7 @@ def main(args):
 
                 # 10. Calculate loss
                 if args.loss_type == "l2":
+                    # CSC592: Paper's loss function for LCM-LoRA distillation, with additional latent loss term weighted by lambda (lmd) hyperparameter.
                     loss = F.mse_loss(model_pred.float(), target.float(), reduction="mean") + args.lmd * F.mse_loss(
                         model_pred.float(), latents.float(), reduction="mean")
                 elif args.loss_type == "huber":
