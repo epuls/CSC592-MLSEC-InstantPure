@@ -1,7 +1,7 @@
 # How to run
 
 ## Setup
-### env vars
+### Environment
 These are default env vars if you follow the folder structure in below instructions. 
 ```
 export MODEL_NAME="stable-diffusion-v1-5/stable-diffusion-v1-5"
@@ -12,7 +12,7 @@ export UCONN_DN_CKPT="./uconn_dinov3_vits16.pt"
 ```
 
 ### Requirements
-**NOTE** Original Repo requirements.txt has too many conflicting/impossible dependencies. Versions removed to get original code functional
+**NOTE:** Original Repo requirements.txt has too many conflicting/impossible dependencies. Versions removed to get original code functional
 
 1. AutoAttack: `pip install git+https://github.com/fra31/auto-attack.git`
 2. requirements.txt `pip install -r requirements.txt`
@@ -28,24 +28,34 @@ def zero_gradients(x):
             zero_gradients(elem)
 ```
 
+---
+
 ### 1. Diff-PGD
 1. Download the Diff-PGD checkpoint at: https://openaipublic.blob.core.windows.net/diffusion/jul-2021/256x256_diffusion_uncond.pt (repository: https://github.com/xavihart/Diff-PGD)
+
+---
 
 ### 2. DINOv3 Backbone
 1. Download DINOv3 weights at: https://ai.meta.com/resources/models-and-libraries/dinov3-downloads/ (ViT-S/16 distilled)
 2. Clone their repository: https://github.com/facebookresearch/dinov3 into the same parent folder as this repo
 3. Place the downloaded DINOv3 weights in the cloned dino repo folder
 
+---
+
 ### 3. UConn Voter Center Dataset
 1. Download Voting Bubbles with Marginal Marks v2.2.0: https://zenodo.org/records/19189220 
-2. Place in this repository's folder, so you should have: ../this_repo/uconn_voter_center_v2_2/FINALDATASETV3...
+2. Place in this repository's folder, so you should have: `../this_repo/uconn_voter_center_v2_2/FINALDATASETV3...`
 3. Download split_Combined_Grayscale.txt from: https://drive.google.com/drive/folders/1H3iXL8TUGtMu9xxJibnscobSGLULEBh1?usp=drive_link
 4. Place .txt file in FINALDATASETV3 folder in uconn_voter_center_v2_2
+
+---
 
 ### 4. LoRA Checkpoint
 If only running tests against LoRA Checkpoint:
 1. Download weights (uconn_dinov3_vits16.pt) from: https://drive.google.com/drive/folders/1H3iXL8TUGtMu9xxJibnscobSGLULEBh1?usp=drive_link
 2. Place in OUTPUT_DIR, ensuring folder structure matches
+
+---
 
 ## Experiment
 ### Annotated Code Presentations
