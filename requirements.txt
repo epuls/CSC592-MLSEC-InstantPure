@@ -1,7 +1,6 @@
 accelerate
 advertorch
 advex_uar
-autoattack
 bitsandbytes
 colorama
 datasets
