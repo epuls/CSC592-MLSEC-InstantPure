@@ -1,7 +1,37 @@
+# How to run
+
+## env vars
+These are default env vars if you follow the folder structure in below instructions.
+`export MODEL_NAME="stable-diffusion-v1-5/stable-diffusion-v1-5"
+export OUTPUT_DIR="./logs/OSCP"
+export DM_CKPT="../Diff-PGD/ckpt/256x256_diffusion_uncond.pt"
+export DINOV3_REPO="../dinov3"`
+
+## Dependencies
+
+
+## 1. Diff-PGD
+1. Download the Diff-PGD checkpoint at: https://openaipublic.blob.core.windows.net/diffusion/jul-2021/256x256_diffusion_uncond.pt (repository: https://github.com/xavihart/Diff-PGD)
+
+## 2. DINOv3 Backbone
+1. Download DINOv3 weights at: https://ai.meta.com/resources/models-and-libraries/dinov3-downloads/ (ViT-S/16 distilled)
+2. Clone their repository: https://github.com/facebookresearch/dinov3 into the same parent folder as this repo
+3. Place the downloaded DINOv3 weights in the cloned folder
+
+## 3. UConn Voter Center Dataset
+1. Download Voting Bubbles with Marginal Marks v2.2.0: https://zenodo.org/records/19189220 
+2. Place in this repository's folder, so you should have: ../this_repo/uconn_voter_center_v2_2/FINALDATASETV3...
+3. Download test split from: (PLACE GOOGLE DRIVE LINK HERE)
+
+
 # Debugging WIP
 ## Env Vars
 export MODEL_NAME="stable-diffusion-v1-5/stable-diffusion-v1-5"
 export OUTPUT_DIR="./logs/OSCP"
+export PGD_DM_CHECKPOINT="../Diff-PGD/ckpt/256x256_diffusion_uncond.pt"
+export DINOV3_REPO="../dinov3"
+
+
 
 ## Train Commands
 python train_lora.py \

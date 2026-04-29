@@ -101,13 +101,15 @@ class Ensure3Channels:
 
 def _uconn(split: str, variant: str = "Combined_Grayscale", print_option: str = "preprint") -> Dataset:
     root = os.path.join(os.environ["UCONN_LOC_ENV"], print_option)
-    print(f"Loading UConn dataset from {root} (variant={variant}, print_option={print_option})")
+    #print(f"Loading UConn dataset from {root} (variant={variant}, print_option={print_option})")
 
     common = [
         transforms.Resize((224, 224), antialias=True),
         Ensure3Channels(),
 #        transforms.Normalize(_IMAGENET_MEAN, _IMAGENET_STDDEV),
     ]
+
+    indices = None
 
     if split == "train":
         pth = os.path.join(root, f"train_{variant}.pth")
@@ -118,10 +120,18 @@ def _uconn(split: str, variant: str = "Combined_Grayscale", print_option: str = 
     elif split == "test":
         pth = os.path.join(root, f"val_{variant}.pth")
         transform = transforms.Compose(common)
+        split_file = os.path.join(os.environ["UCONN_LOC_ENV"], f"split_{variant}.txt")
+        if not os.path.exists(split_file):
+            raise FileNotFoundError(
+                f"Test split file not found: {split_file}\n"
+                f"Generate it first via get_uconn_dataloaders() or _load_or_create_split()."
+            )
+        with open(split_file) as f:
+            indices = [int(line.strip()) for line in f if line.strip()]
     else:
         raise ValueError(f"Unsupported split for uconn: {split!r}")
 
-    return UConnDataset(pth, transform=transform)
+    return UConnDataset(pth, transform=transform, indices=indices)
 
 def _celebA(split: str) -> Dataset:
     return datasets.ImageFolder(os.environ['celebahq'] ,transform=transforms.Compose([

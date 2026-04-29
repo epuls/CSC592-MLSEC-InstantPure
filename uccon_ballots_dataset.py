@@ -19,7 +19,7 @@ class UConnDataset(Dataset):
       - transform handles resize/channel/normalization
     """
 
-    def __init__(self, pth_path: str, transform=None, target_transform=None):
+    def __init__(self, pth_path: str, transform=None, target_transform=None, indices=None):
         self.pth_path = Path(pth_path)
         self.transform = transform
         self.target_transform = target_transform
@@ -52,6 +52,11 @@ class UConnDataset(Dataset):
                 raise RuntimeError(f"Unexpected image tensor shape: {self.data.shape}")
         else:
             raise RuntimeError(f"Unexpected image tensor shape: {self.data.shape}")
+
+        if indices is not None:
+            idx = list(indices)
+            self.data = self.data[idx]
+            self.targets = self.targets[idx]
 
         self.classes = ["0", "1"]
         self.class_to_idx = {"0": 0, "1": 1}

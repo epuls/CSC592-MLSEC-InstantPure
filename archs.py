@@ -6,6 +6,7 @@ from transformers import BeitForImageClassification
 import torch
 from cub_dino_v3_model import DINOv3ViTs16
 from uconn_ballots_dino_v3_model import DINOv3UConnModel
+import os
 
 
 def get_archs(arch, dataset='imagenet'):
@@ -28,24 +29,27 @@ def get_archs(arch, dataset='imagenet'):
         elif arch == 'convnext_b':
             model = torchvision.models.convnext_base(weights='DEFAULT')
     elif dataset == "cub200":
+        repo_dir = os.environ.get('DINOV3_REPO', '../dinov3/')
         model = DINOv3ViTs16(
-            repo_dir='../dinov3/',
-            weights_path='../dinov3/dinov3_vits16_pretrain_lvd1689m.pth',
+            repo_dir=repo_dir,
+            weights_path=os.path.join(repo_dir, 'dinov3_vits16_pretrain_lvd1689m.pth'),
             num_classes=200,
             freeze_backbone=True,
         )
 
-        weights = torch.load('../cub_dinov3_vits16.pt', map_location='cuda')
+        repo_dir = os.environ.get('DINOV3_REPO', '../dinov3/')
+        weights = torch.load(os.path.join(repo_dir, 'cub_dinov3_vits16.pt'), map_location='cuda')
 
         model.load_state_dict(weights['model_state_dict'])
         model.eval()
     elif dataset == "uconn":
+        repo_dir = os.environ.get('DINOV3_REPO', '../dinov3/')
         model = DINOv3UConnModel(num_classes=2, 
-                                 repo_dir='../dinov3/', 
-                                 weights_path='../dinov3/dinov3_vits16_pretrain_lvd1689m.pth', 
+                                 repo_dir=repo_dir, 
+                                 weights_path=os.path.join(repo_dir, 'dinov3_vits16_pretrain_lvd1689m.pth'), 
                                  freeze_backbone=True
                                  )
-        weights = torch.load('../uconn_dinov3_vits16.pt', map_location='cuda')
+        weights = torch.load(os.path.join(repo_dir, 'uconn_dinov3_vits16.pt'), map_location='cuda')
         model.load_state_dict(weights['model_state_dict'])
         model.eval()
         
