@@ -4,11 +4,15 @@
 ### Environment
 These are default env vars if you follow the folder structure in below instructions. 
 ```
-export MODEL_NAME="stable-diffusion-v1-5/stable-diffusion-v1-5"
 export OUTPUT_DIR="./logs/OSCP"
 export DM_CKPT="../Diff-PGD/ckpt/256x256_diffusion_uncond.pt"
 export DINOV3_REPO="../dinov3"
 export UCONN_DN_CKPT="./uconn_dinov3_vits16.pt"
+```
+
+Set this to ensure huggingface compat
+```
+export MODEL_NAME="stable-diffusion-v1-5/stable-diffusion-v1-5"
 ```
 
 ### Requirements
@@ -55,7 +59,7 @@ def zero_gradients(x):
 
 ---
 
-### 54. LoRA Checkpoint
+### 5. LoRA Checkpoint
 If only running tests against LoRA Checkpoint:
 1. Download checkpoint from: https://drive.google.com/drive/folders/1H3iXL8TUGtMu9xxJibnscobSGLULEBh1?usp=drive_link
 2. Place in OUTPUT_DIR, ensuring folder structure matches
