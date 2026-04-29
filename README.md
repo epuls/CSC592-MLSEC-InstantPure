@@ -32,6 +32,7 @@ def zero_gradients(x):
 
 ### 1. Diff-PGD
 1. Download the Diff-PGD checkpoint at: https://openaipublic.blob.core.windows.net/diffusion/jul-2021/256x256_diffusion_uncond.pt (repository: https://github.com/xavihart/Diff-PGD)
+2. Create folder `DiffPGD/ckpt` in same root location that this repo is in, and place checkpoint in ckpt folder. (Or change environment variable)
 
 ---
 
@@ -42,7 +43,11 @@ def zero_gradients(x):
 
 ---
 
-### 3. UConn Voter Center Dataset
+### 3. Trained Classifier
+1. Download trained classifier weights at: https://drive.google.com/drive/folders/1H3iXL8TUGtMu9xxJibnscobSGLULEBh1?usp=drive_link
+2. Place in cloned dinov3 repository
+
+### 4. UConn Voter Center Dataset
 1. Download Voting Bubbles with Marginal Marks v2.2.0: https://zenodo.org/records/19189220 
 2. Place in this repository's folder, so you should have: `../this_repo/uconn_voter_center_v2_2/FINALDATASETV3...`
 3. Download split_Combined_Grayscale.txt from: https://drive.google.com/drive/folders/1H3iXL8TUGtMu9xxJibnscobSGLULEBh1?usp=drive_link
@@ -50,10 +55,20 @@ def zero_gradients(x):
 
 ---
 
-### 4. LoRA Checkpoint
+### 54. LoRA Checkpoint
 If only running tests against LoRA Checkpoint:
-1. Download weights (uconn_dinov3_vits16.pt) from: https://drive.google.com/drive/folders/1H3iXL8TUGtMu9xxJibnscobSGLULEBh1?usp=drive_link
+1. Download checkpoint from: https://drive.google.com/drive/folders/1H3iXL8TUGtMu9xxJibnscobSGLULEBh1?usp=drive_link
 2. Place in OUTPUT_DIR, ensuring folder structure matches
+
+---
+
+### Final Recommended Folder Structure:
+```
+../DiffPGD/ckpt
+../dinov3/
+../CSC592-MLSEC-InstantPure/
+
+```
 
 ---
 
